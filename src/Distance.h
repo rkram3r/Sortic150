@@ -9,8 +9,9 @@ class Distance:public Sensor
 {
 public:
   Distance(NewPing *sensor) : sensor{sensor} { }
-    Print & get(Print &obj){
-    return obj << sensor->ping_cm();
+    
+  Print & get(Print &obj){
+      return obj << sensor->ping_cm();
   }
 private:
   NewPing *sensor;

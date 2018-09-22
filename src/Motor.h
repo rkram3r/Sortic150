@@ -13,9 +13,6 @@ public:
 
   void start(int speed)
   {
-    if(speed == 0){
-         motor->run(RELEASE);
-    }
     motor->run(direction);
     motor->setSpeed(speed);
   }

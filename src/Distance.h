@@ -5,14 +5,21 @@
 #include <NewPing.h>
 #include <Sensor.h>
 
-class Distance:public Sensor
+class Distance : public Sensor
 {
 public:
-  Distance(NewPing *sensor) : sensor{sensor} { }
-    
-  Print & get(Print &obj){
-      return obj << sensor->ping_cm();
+  Distance(NewPing *sensor) : sensor{sensor} {}
+
+  String get()
+  {
+    auto value = sensor->ping_cm();
+    if (value == 0)
+    {
+      return "";
+    }
+    return String(value);
   }
+
 private:
   NewPing *sensor;
 };

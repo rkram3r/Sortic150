@@ -4,17 +4,17 @@
 #ifndef Motor_h
 #define Motor_h
 
-class Motor :public Action
+class Motor : public Action
 {
 public:
   Motor(Adafruit_DCMotor *motor, byte direction) : motor{motor}, direction{direction}
   {
   }
 
-  void start(int speed)
+  void start(uint8_t params)
   {
     motor->run(direction);
-    motor->setSpeed(speed);
+    motor->setSpeed(params);
   }
 
 private:

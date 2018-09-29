@@ -8,6 +8,7 @@
 #include <Distance.h>
 #include <Motor.h>
 #include <RfidDetector.h>
+#include <MachineApi.h>
 
 static Adafruit_MotorShield currentMotorShield{};
 static Adafruit_DCMotor *driverMotor = currentMotorShield.getMotor(MOTOR_NR);
@@ -19,9 +20,9 @@ static Sensor *sensors[] = {
     new Distance{newPing}};
 static Action *actions[] = {
     new Motor{driverMotor, FORWARD},
-    new Motor{driverMotor, BACKWARD}};
+    new Motor{driverMotor, BACKWARD}, new Motor{driverMotor, RELEASE}};
 
-static auto streamHandler = new StreamHandler{sensors, actions, NofSensors, NofActions};
+static MachineApi *machineApi = new MachineApi{sensors, NofSensors, actions, NofActions};
 
 void setup()
 {
@@ -30,7 +31,9 @@ void setup()
     SPI.begin();
     partDetector.PCD_Init();
 }
+
 void loop()
 {
-    streamHandler->printToStream(Serial);
+    machineApi->in(Serial);
+    machineApi->out(Serial);
 }

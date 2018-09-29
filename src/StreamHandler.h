@@ -24,6 +24,7 @@ struct ActionGradient
 
     void record(uint8_t actualValue)
     {
+        // todo: for strings maybe only need to count equal and notequal.
         if (nofCalculations == 255)
         {
             return;

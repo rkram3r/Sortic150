@@ -13,10 +13,9 @@ class MachineApi
           sensors{sensors},
           actions{actions},
           nofActions{nofActions},
-          nofSensors{nofSensors},
-          indexOfAction{}
+          nofSensors{nofSensors}
     {
-        interpreter = new Interpreter{nofSensors, nofActions};
+        buffer = new String[nofSensors]{};
     }
 
     void in(Stream &stream)
@@ -25,23 +24,24 @@ class MachineApi
 
         if (commandType == CommandTypeAction)
         {
-            auto actionCommand = new ActionCommand{stream};
-            auto action = actions[actionCommand->actionIndex];
-            action->start(actionCommand->params);
-            indexOfAction = actionCommand->actionIndex;
+            ActionCommand *actionCommand = new ActionCommand{stream, actions};
+            actionCommand->startAction();
         }
 
+        if (commandType == CommandTypeStep)
+        {
+            cycle->setStep(stream, actions);
+        }
         if (commandType == CommandTypeCycle)
         {
-            CycleCommand *cycleCommand = new CycleCommand{stream};
-            String actualValue = sensors[cycleCommand->getIndexOfActualSensor()]->get();
-            if (actualValue != "")
+            cycle = new Cycle{stream, actions};
+        }
+        if (commandType == CommandTypeCycle || commandType == CommandTypeStep)
+        {
+            for (auto index = 0; index < NofSensors; index++)
             {
-                uint8_t actionIndex = cycleCommand->tryGoNextStep(actualValue.toInt(), interpreter);
-                if (actionIndex != -1)
-                {
-                    actions[actionIndex]->start(100);
-                }
+                buffer[index] = sensors[index]->get();
+                cycle->tryRunNextAction(buffer[index].toInt(), index);
             }
         }
     }
@@ -51,11 +51,7 @@ class MachineApi
         stream << '[';
         for (auto index = 0; index < NofSensors; index++)
         {
-            String actualValue = sensors[index]->get();
-            if (commandType == CommandTypeAction && actualValue != "" && actualValue.indexOf("\"") == -1)
-            {
-                interpreter->record(index, indexOfAction, actualValue.toInt());
-            }
+            String actualValue = commandType == CommandTypeCycle ? buffer[index] : sensors[index]->get();
             stream << actualValue << (index == NofSensors - 1 ? ']' : ',');
         }
     }
@@ -64,10 +60,10 @@ class MachineApi
     CommandType commandType;
     Sensor **sensors;
     Action **actions;
+    Cycle *cycle;
     uint8_t nofSensors;
     uint8_t nofActions;
-    Interpreter *interpreter;
-    uint8_t indexOfAction;
+    String *buffer;
 };
 
 #endif

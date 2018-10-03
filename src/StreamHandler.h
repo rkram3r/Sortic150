@@ -6,108 +6,107 @@ struct ActionCommand
 {
     uint8_t actionIndex;
     uint8_t params;
-    ActionCommand(Stream &stream) : actionIndex{stream.parseInt()},
-                                    params{stream.parseInt()}
+    Action **actions;
+    ActionCommand(Stream &stream, Action **actions) : actionIndex{stream.parseInt()},
+                                                      params{stream.parseInt()}
     {
+    }
+    void startAction()
+    {
+        actions[actionIndex]->start(params);
     }
 };
 
-struct ActionGradient
+struct Comparison
 {
-    uint8_t *gradients;
-    uint8_t tmpNumber{};
-    uint8_t nofCalculations{0};
-    ActionGradient()
+    uint8_t sensorIndex;
+    uint8_t comperator;
+    uint8_t value;
+    bool unknown;
+
+    Comparison(Stream &stream) : sensorIndex{stream.parseInt()},
+                                 comperator{stream.read()},
+                                 value{stream.peek() == 'X' ? 0 : stream.parseInt()},
+                                 unknown{stream.peek() == 'X'}
     {
-        gradients = new uint8_t[3]{};
     }
 
-    void record(uint8_t actualValue)
+    bool conditionFullifilled(uint8_t sensorValue, uint8_t index)
     {
-        // todo: for strings maybe only need to count equal and notequal.
-        if (nofCalculations == 255)
+        if (sensorIndex != index || unknown)
         {
-            return;
+            return false;
         }
-
-        if (nofCalculations != 0)
+        if (comperator == '<')
         {
-            gradients[0] += actualValue < tmpNumber ? 1 : 0;
-            gradients[1] += actualValue == tmpNumber ? 1 : 0;
-            gradients[2] += actualValue > tmpNumber ? 1 : 0;
+            return value < sensorValue;
         }
-
-        tmpNumber = actualValue;
-        nofCalculations++;
+        if (comperator == '>')
+        {
+            return value > sensorValue;
+        }
+        if (comperator == '!')
+        {
+            return value != sensorValue;
+        }
+        return value == sensorValue;
     }
 };
 
-struct Interpreter
+struct Condition
 {
-    uint8_t nofSensors;
-    uint8_t nofActions;
-    ActionGradient **actionGradients;
-    uint8_t *sensorGradients;
-    uint8_t nofGradients{3};
-    bool alreadyCalculateGradients{false};
+    uint8_t nofComparisions;
+    Comparison **comparisons;
 
-    Interpreter(uint8_t nofSensors, uint8_t nofActions) : nofSensors{nofSensors}, nofActions{nofActions}
+    Condition(Stream &stream) : nofComparisions{stream.parseInt()}
     {
-        sensorGradients = new uint8_t[nofActions * nofGradients]{};
-        for (auto index = 0; index < nofSensors; index++)
+        comparisons[nofComparisions] = {};
+        for (auto index = 0; index < nofComparisions; index++)
         {
-            actionGradients[index] = new ActionGradient[nofActions]{};
+            comparisons[index] = new Comparison{stream};
         }
     }
 
-    void record(uint8_t sensorIndex, uint8_t actionIndex, uint8_t value)
+    bool conditionFullifilled(uint8_t sensorValue, uint8_t index)
     {
-        actionGradients[sensorIndex][actionIndex].record(value);
-    }
-
-    uint8_t getIndexOfBestGradient(uint8_t actionIndex, uint8_t gradientIndex)
-    {
-        uint8_t bestValue{};
-        uint8_t indexOfBestValue{};
-        for (auto sensorIndex = 0; sensorIndex < nofSensors; sensorIndex++)
+        for (auto index = 0; index < nofComparisions; index++)
         {
-            uint8_t *gradients = actionGradients[sensorIndex][actionIndex].gradients;
-            uint8_t gradient = gradients[gradientIndex];
-
-            if (gradient > bestValue)
+            if (!comparisons[index]->conditionFullifilled(sensorValue, index))
             {
-                bestValue = gradient;
-                indexOfBestValue = actionIndex;
+                return false;
             }
         }
-
-        return indexOfBestValue;
+        return true;
     }
+};
 
-    uint8_t *getGradients()
+struct Step
+{
+    uint8_t nofConditions;
+    Condition **conditions;
+    ActionCommand **actionCommands;
+    uint8_t *comperators;
+
+    Step(Stream &stream, Action **actions) : nofConditions{stream.parseInt()}
     {
-        if (!alreadyCalculateGradients)
+        conditions[nofConditions] = {};
+        actionCommands[nofConditions] = {};
+        comperators[nofConditions] = new uint8_t[nofConditions]{};
+
+        for (auto index = 0; index < nofConditions; index++)
         {
-            for (auto actionIndex = 0; actionIndex < nofActions; actionIndex++)
-            {
-                for (auto gradientIndex = 0; gradientIndex < nofGradients; gradientIndex++)
-                {
-                    sensorGradients[actionIndex * nofGradients + gradientIndex] = getIndexOfBestGradient(actionIndex, gradientIndex);
-                }
-            }
-            alreadyCalculateGradients = true;
+            conditions[index] = new Condition{stream};
+            actionCommands[index] = new ActionCommand{stream, actions};
         }
-        return sensorGradients;
     }
-
-    uint8_t getIndexOfAction(uint8_t gradientType, uint8_t sensorIndex)
+    uint8_t indexOfFulifilledCondition(uint8_t sensorValue, uint8_t sensorIndex)
     {
-        for (auto index = 0; index < nofActions * nofGradients; index++)
+        for (auto index = 0; index < nofConditions; index++)
         {
-            uint8_t actionForSensor = getGradients()[index * nofGradients + gradientType];
-            if (actionForSensor == sensorIndex)
+            Condition *condition = conditions[index];
+            if (condition->conditionFullifilled(sensorValue, sensorIndex))
             {
-                return actionForSensor;
+                return index;
             }
         }
 
@@ -115,48 +114,38 @@ struct Interpreter
     }
 };
 
-struct CycleCommand
+struct Cycle
 {
     uint8_t nofSteps;
+    Step **steps;
     uint8_t actualStep{0};
-    uint8_t *sensorIndexes;
-    uint8_t *targetValues;
-    CycleCommand(Stream &stream) : nofSteps{stream.parseInt()}
+
+    Cycle(Stream &stream, Action **actions) : nofSteps{stream.parseInt()}
     {
-        sensorIndexes = new uint8_t[nofSteps]{};
-        targetValues = new uint8_t[nofSteps]{};
+        steps[nofSteps] = {};
         for (auto index = 0; index < nofSteps; index++)
         {
-            sensorIndexes[index] = stream.parseInt();
-            targetValues[index] = stream.peek() == '?' ? '?' : stream.parseInt();
+            steps[index] = new Step{stream, actions};
         }
     }
 
-    uint8_t getIndexOfActualSensor()
+    void tryRunNextAction(uint8_t sensorValue, uint8_t sensorIndex)
     {
-        return sensorIndexes[actualStep];
+        Step *step = steps[actualStep];
+        uint8_t indexOfFulifilledCondition = step->indexOfFulifilledCondition(sensorValue, sensorIndex);
+
+        if (indexOfFulifilledCondition != -1)
+        {
+            actualStep += actualStep == nofSteps ? -nofSteps : 1;
+            ActionCommand *actionCommand = step->actionCommands[indexOfFulifilledCondition];
+            actionCommand->startAction();
+        }
     }
 
-    bool tryGoNextStep(uint8_t actualValue, Interpreter *interpreter)
+    void setStep(Stream &stream, Action **actions)
     {
-        if (actualStep == nofSteps)
-        {
-            actualStep = 0;
-        }
-
-        uint8_t targetValue = targetValues[actualStep];
-
-        if (targetValue == '?')
-        {
-            return -1;
-        }
-        if (actualValue == targetValue)
-        {
-            actualStep++;
-        }
-
-        uint8_t gradientType = actualValue > targetValue ? 0 : (actualValue == targetValue ? 0 : 1);
-        return interpreter->getIndexOfAction(gradientType, getIndexOfActualSensor());
+        delete steps[actualStep];
+        steps[actualStep] = new Step{stream, actions};
     }
 };
 
@@ -164,6 +153,7 @@ enum CommandType
 {
     CommandTypeAction = 'a',
     CommandTypeCycle = 'c',
+    CommandTypeStep = 's',
     None = 0
 };
 

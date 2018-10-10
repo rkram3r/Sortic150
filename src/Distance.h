@@ -1,6 +1,4 @@
-
-#ifndef Distance_h
-#define Distance_h
+#pragma once
 
 #include <NewPing.h>
 #include <Sensor.h>
@@ -10,18 +8,16 @@ class Distance : public Sensor
 public:
   Distance(NewPing *sensor) : sensor{sensor} {}
 
-  String get()
+  Print &get(Print &out)
   {
     auto value = sensor->ping_cm();
     if (value == 0)
     {
-      return "";
+      return out;
     }
-    return String(value);
+    return out << value;
   }
 
 private:
   NewPing *sensor;
 };
-
-#endif

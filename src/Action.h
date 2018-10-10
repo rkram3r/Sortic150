@@ -1,5 +1,4 @@
-#ifndef Action_h
-#define Action_h
+#pragma once
 #include <Arduino.h>
 
 class Action
@@ -7,5 +6,3 @@ class Action
 public:
   virtual void start(uint8_t params) = 0;
 };
-
-#endif

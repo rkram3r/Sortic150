@@ -1,9 +1,11 @@
-#include <StreamHandler.h>
-#include <Sensor.h>
-#include <Action.h>
-
-#ifndef MachineApi_h
-#define MachineApi_h
+#pragma once
+#include "CommandType.h"
+#include "Cycle.h"
+#include "ActionCommand.h"
+#include "Sensor.h"
+#include "Action.h"
+#include "LoopbackStream.h"
+#include <Arduino.h>
 
 class MachineApi
 {
@@ -11,11 +13,11 @@ class MachineApi
     MachineApi(Sensor **sensors, uint8_t nofSensors, Action **actions, uint8_t nofActions)
         : commandType{None},
           sensors{sensors},
+          nofSensors{nofSensors},
           actions{actions},
           nofActions{nofActions},
-          nofSensors{nofSensors}
+          buffer{}
     {
-        buffer = new String[nofSensors]{};
     }
 
     void in(Stream &stream)
@@ -24,46 +26,45 @@ class MachineApi
 
         if (commandType == CommandTypeAction)
         {
-            ActionCommand *actionCommand = new ActionCommand{stream, actions};
-            actionCommand->startAction();
+            ActionCommand *actionCommand = new ActionCommand{stream};
+            actionCommand->tryRunAction(actions);
         }
 
-        if (commandType == CommandTypeStep)
-        {
-            cycle->setStep(stream, actions);
-        }
         if (commandType == CommandTypeCycle)
         {
-            cycle = new Cycle{stream, actions};
-        }
-        if (commandType == CommandTypeCycle || commandType == CommandTypeStep)
-        {
+            cycle = new Cycle{stream, nofActions};
             for (auto index = 0; index < NofSensors; index++)
             {
-                buffer[index] = sensors[index]->get();
-                cycle->tryRunNextAction(buffer[index].toInt(), index);
+                sensors[index]->get(buffer);
+                auto actionCommand = cycle->getActionCommand(buffer.parseInt());
+                actionCommand->tryRunAction(actions);
             }
         }
     }
 
-    void out(Print &stream)
+    void out(Print &out)
     {
-        stream << '[';
+        out << '[';
         for (auto index = 0; index < NofSensors; index++)
         {
-            String actualValue = commandType == CommandTypeCycle ? buffer[index] : sensors[index]->get();
-            stream << actualValue << (index == NofSensors - 1 ? ']' : ',');
+            if (commandType == CommandTypeCycle)
+            {
+                out << buffer.read();
+            }
+            else
+            {
+                sensors[index]->get(out);
+            }
+            out << (index == NofSensors - 1 ? ']' : ',');
         }
     }
 
   private:
     CommandType commandType;
     Sensor **sensors;
-    Action **actions;
-    Cycle *cycle;
     uint8_t nofSensors;
+    Action **actions;
     uint8_t nofActions;
-    String *buffer;
+    Cycle *cycle;
+    LoopbackStream buffer;
 };
-
-#endif

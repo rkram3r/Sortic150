@@ -1,5 +1,4 @@
-#ifndef Sensor_h
-#define Sensor_h
+#pragma once
 
 #include <Arduino.h>
 
@@ -13,6 +12,5 @@ inline Print &operator<<(Print &obj, T arg)
 class Sensor
 {
 public:
-  virtual String get() = 0;
+  virtual Print &get(Print &print) = 0;
 };
-#endif

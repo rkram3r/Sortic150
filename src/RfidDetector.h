@@ -10,17 +10,14 @@ class RfidDetector : public Sensor
 public:
   RfidDetector(MFRC522 *rfidReader) : rfidReader{rfidReader} {}
 
-  String get()
+  Print &get(Print &out)
   {
-    String out{};
     if (cardPresent())
     {
-      out += "\"";
       for (auto index = 0; index < RFID_LENGTH; index++)
       {
-        out += String(rfidReader->uid.uidByte[index]);
+        out << rfidReader->uid.uidByte[index];
       }
-      out += "\"";
     }
 
     return out;

@@ -1,13 +1,11 @@
 #include <Arduino.h>
 #include <NewPing.h>
 #include <MFRC522.h>
-
-#include <Action.h>
-#include <StreamHandler.h>
-#include <Sensor.h>
-#include <Distance.h>
-#include <Motor.h>
-#include <RfidDetector.h>
+#include "Action.h"
+#include "Sensor.h"
+#include "Distance.h"
+#include "Motor.h"
+#include "RfidDetector.h"
 #include <MachineApi.h>
 
 static Adafruit_MotorShield currentMotorShield{};
@@ -18,9 +16,11 @@ static NewPing *newPing = new NewPing{CHASSIS_DIGITAL_TRIG_PIN, CHASSIS_DIGITAL_
 static Sensor *sensors[] = {
     new RfidDetector{&partDetector},
     new Distance{newPing}};
+
 static Action *actions[] = {
     new Motor{driverMotor, FORWARD},
-    new Motor{driverMotor, BACKWARD}, new Motor{driverMotor, RELEASE}};
+    new Motor{driverMotor, BACKWARD},
+    new Motor{driverMotor, RELEASE}};
 
 static MachineApi *machineApi = new MachineApi{sensors, NofSensors, actions, NofActions};
 

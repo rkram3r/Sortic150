@@ -25,9 +25,9 @@ struct Cycle
         }
     }
 
-    ActionCommand *getActionCommand(int valueToCompare)
+    ActionCommand *getActionCommand(int valueToCompare, uint8_t sensorIndex)
     {
-        if (steps[actualStep]->conditionFullified(valueToCompare))
+        if (steps[actualStep]->conditionFullified(valueToCompare, sensorIndex))
         {
             tryGoNextStep(valueToCompare);
             return actionCommands[actualStep];

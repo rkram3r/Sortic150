@@ -9,24 +9,24 @@ bool greater(int a, int b) { return a > b; }
 bool notEqual(int a, int b) { return !equal(a, b); }
 bool lowerThanEqual(int a, int b) { return equal(a, b) || lower(a, b); }
 bool greaterThanEqual(int a, int b) { return equal(a, b) || greater(a, b); }
+bool alwaysTrue(int a, int b) { return true; }
+const uint8_t asciiValueForA = 97;
 
-compare functions[] = {equal, lower, greater, notEqual, lowerThanEqual, greaterThanEqual};
+compare functions[] = {equal, lower, greater, notEqual, lowerThanEqual, greaterThanEqual, alwaysTrue};
 
 struct Condition
 {
-    bool goToNextStep;
     uint8_t sensorIndex;
-    uint8_t comperator;
+    bool goToNextStep;
+    char comperator;
     int value;
-    Condition(Stream &stream) : goToNextStep{stream.peek() == '*'},
-                                sensorIndex{(uint8_t)stream.parseInt()},
-                                comperator{(uint8_t)stream.read()},
-                                value{(int)stream.parseInt()}
-    {
-    }
+    Condition(Stream &stream) : sensorIndex{(uint8_t)stream.parseInt()},
+                                goToNextStep{stream.peek() == '*'},
+                                comperator{(char)stream.read()},
+                                value{(int)stream.parseInt()} {}
 
-    bool conditionFullified(int valueToCompare)
+    bool conditionFullified(int valueToCompare, uint8_t currentSensorIndex)
     {
-        return functions[comperator](valueToCompare, value);
+        return currentSensorIndex == sensorIndex && functions[comperator - asciiValueForA](valueToCompare, value);
     }
 };

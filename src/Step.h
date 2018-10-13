@@ -16,11 +16,16 @@ struct Step
         }
     }
 
-    bool conditionFullified(uint8_t valueToCompare)
+    Step() : nofConditions{0}
     {
+    }
+
+    bool conditionFullified(uint8_t valueToCompare, uint8_t currentSensorIndex)
+    {
+
         for (auto index = 0; index < nofConditions; index++)
         {
-            if (conditions[index]->conditionFullified(valueToCompare))
+            if (conditions[index]->conditionFullified(valueToCompare, currentSensorIndex))
             {
                 return true;
             }

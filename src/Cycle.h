@@ -2,46 +2,59 @@
 
 #include <Arduino.h>
 #include "ActionCommand.h"
-#include "Step.h"
+#include "Condition.h"
 
-struct Cycle
+class Cycle
 {
-    uint8_t nofSteps;
-    uint8_t nofActionCommands;
-    uint8_t actualStep{0};
-    ActionCommand **actionCommands;
-    Step **steps;
-    ActionCommand *dummyActionCommand{};
+  public:
+    Cycle(String income, uint8_t nofActionCommands) : nofSteps{(uint8_t)income.charAt(1) - '0'}
 
-    Cycle(Stream &stream, uint8_t nofActionCommands) : nofSteps{(uint8_t)stream.parseInt()},
-                                                       nofActionCommands{nofActionCommands}
     {
-        steps[nofSteps * nofActionCommands] = {};
-        actionCommands[nofSteps * nofActionCommands] = {};
-        for (auto index = 0; index < nofSteps * nofActionCommands; index++)
+        char buff[64];
+        income.toCharArray(buff, 64);
+        char delimiter[] = "[(),:]";
+        char *ptr = strtok(buff, delimiter);
+        String *conditionAsString = new String[nofSteps]{};
+        nofActionCommands = {nofActionCommands};
+        actionIndexes = new uint8_t[nofSteps]{};
+        params = new uint8_t[nofSteps]{};
+
+        for (int index = 0; index < nofSteps; index++)
         {
-            actionCommands[index] = new ActionCommand{stream, nofSteps % index};
-            steps[index] = new Step{stream};
+            ptr = strtok(NULL, delimiter);
+            conditionAsString[index] = ptr;
+
+            ptr = strtok(NULL, delimiter);
+            actionIndexes[index] = atoi(ptr);
+
+            ptr = strtok(NULL, delimiter);
+            params[index] = atoi(ptr);
+        }
+
+        for (int index = 0; index < nofSteps; index++)
+        {
+            conditions[index] = new Condition{conditionAsString[index], 2};
         }
     }
-
-    ActionCommand *getActionCommand(int valueToCompare, uint8_t sensorIndex)
+    //c3[0b0&0c38:1(100),0b0&0d38:1(100),0b0&0a38:1(100)]
+    ActionCommand *getActionCommand(int valueToCompare, int sensorIndex)
     {
-        if (steps[actualStep]->conditionFullified(valueToCompare, sensorIndex))
+        for (int index = 0; index < nofSteps; index++)
         {
-            tryGoNextStep(valueToCompare);
-            return actionCommands[actualStep];
+            if (conditions[index]->conditionFullified(valueToCompare, sensorIndex))
+            {
+                return new ActionCommand{actionIndexes[index], params[index]};
+            }
         }
         return dummyActionCommand;
     }
 
-    bool tryGoNextStep(int valueToCompare)
-    {
-        if (steps[actualStep]->nextStep(valueToCompare))
-        {
-            actualStep += actualStep == nofSteps ? 1 : -nofSteps;
-            return true;
-        }
-        return false;
-    }
+  private:
+    uint8_t nofSteps;
+    uint8_t nofActionCommands;
+    uint8_t actualStep{0};
+    uint8_t *actionIndexes;
+    uint8_t *params;
+    Condition *conditions[];
+    ActionCommand *dummyActionCommand{};
 };

@@ -9,24 +9,47 @@ bool greater(int a, int b) { return a > b; }
 bool notEqual(int a, int b) { return !equal(a, b); }
 bool lowerThanEqual(int a, int b) { return equal(a, b) || lower(a, b); }
 bool greaterThanEqual(int a, int b) { return equal(a, b) || greater(a, b); }
-bool alwaysTrue(int a, int b) { return true; }
-const uint8_t asciiValueForA = 97;
 
-compare functions[] = {equal, lower, greater, notEqual, lowerThanEqual, greaterThanEqual, alwaysTrue};
+compare functions[] = {equal, lower, greater, notEqual, lowerThanEqual, greaterThanEqual};
 
 struct Condition
 {
-    uint8_t sensorIndex;
-    bool goToNextStep;
-    char comperator;
-    int value;
-    Condition(Stream &stream) : sensorIndex{(uint8_t)stream.parseInt()},
-                                goToNextStep{stream.peek() == '*'},
-                                comperator{(char)stream.read()},
-                                value{(int)stream.parseInt()} {}
+    uint8_t nofConditions;
+    uint8_t *sensorIndexes;
+    uint8_t *comperators;
+    int *values;
 
-    bool conditionFullified(int valueToCompare, uint8_t currentSensorIndex)
+    Condition(String income, uint8_t nofConditions) : nofConditions{nofConditions},
+                                                      sensorIndexes{new uint8_t[nofConditions]{}},
+                                                      comperators{new uint8_t[nofConditions]{}},
+                                                      values{new int[nofConditions]{}}
     {
-        return currentSensorIndex == sensorIndex && functions[comperator - asciiValueForA](valueToCompare, value);
+        char buff[32];
+        income.toCharArray(buff, 64);
+
+        char delimiter[] = "&";
+        char *ptr;
+        for (int index = 0; index < nofConditions; index++)
+        {
+            ptr = strtok(index == 0 ? buff : NULL, delimiter);
+            sensorIndexes[index] = ptr[0] - '0';
+            comperators[index] = ptr[1] - 'a';
+            String tmp = ptr;
+            tmp = tmp.substring(2, tmp.length());
+            values[index] = tmp.toInt();
+        }
+    }
+
+    bool conditionFullified(int valueToCompare, int currentSensorIndex)
+    {
+        for (int index = 0; index < nofConditions; index++)
+        {
+            if (currentSensorIndex == sensorIndexes[index] &&
+                functions[comperators[index]](valueToCompare, values[index]))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 };

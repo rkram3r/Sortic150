@@ -2,7 +2,7 @@
 
 enum CommandType
 {
-    CommandTypeAction = 'a',
-    CommandTypeCycle = 'c',
+    CommandTypeAction = 97,
+    CommandTypeCycle = 99,
     None = 0
 };

@@ -22,40 +22,53 @@ class MachineApi
 
     void in(Stream &stream)
     {
-        commandType = stream.available() ? (CommandType)stream.peek() : commandType;
 
+        if (!stream.available())
+        {
+            return;
+        }
+        String income = stream.readStringUntil('\n');
+        commandType = (CommandType)income.charAt(0);
         if (commandType == CommandTypeAction)
         {
-            ActionCommand *actionCommand = new ActionCommand{stream};
+            ActionCommand *actionCommand = new ActionCommand{buffer};
             actionCommand->tryRunAction(actions);
         }
-
         if (commandType == CommandTypeCycle)
         {
-            cycle = new Cycle{stream, nofActions};
-            for (auto index = 0; index < NofSensors; index++)
-            {
-                sensors[index]->get(buffer);
-                auto actionCommand = cycle->getActionCommand(buffer.parseInt());
-                actionCommand->tryRunAction(actions);
-            }
+            cycle = new Cycle{income, nofActions};
         }
     }
 
     void out(Print &out)
     {
-        out << '[';
-        for (auto index = 0; index < NofSensors; index++)
+        if (commandType == CommandTypeCycle)
         {
-            if (commandType == CommandTypeCycle)
+            out << '[';
+            for (auto index = 0; index < NofSensors; index++)
             {
-                out << buffer.read();
+                uint8_t *value = sensors[index]->get();
+                if (value[0] != 0)
+                {
+                    out << value[1];
+                    ActionCommand *actionCommand = cycle->getActionCommand(value[1], index);
+                    actionCommand->tryRunAction(actions);
+                }
+                out << (index == NofSensors - 1 ? ']' : ',');
             }
-            else
+        }
+        else
+        {
+            out << '[';
+            for (auto index = 0; index < NofSensors; index++)
             {
-                sensors[index]->get(out);
+                uint8_t *value = sensors[index]->get();
+                if (value[0] != 0)
+                {
+                    out << value[1];
+                }
+                out << (index == NofSensors - 1 ? ']' : ',');
             }
-            out << (index == NofSensors - 1 ? ']' : ',');
         }
     }
 

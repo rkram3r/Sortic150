@@ -11,7 +11,7 @@
 static Adafruit_MotorShield currentMotorShield{};
 static Adafruit_DCMotor *driverMotor = currentMotorShield.getMotor(MOTOR_NR);
 static MFRC522 partDetector{RFIDDETECTOR_SDA, RFIDDETECTOR_RST_PIN};
-static NewPing *newPing = new NewPing{CHASSIS_DIGITAL_TRIG_PIN, CHASSIS_DIGITAL_ECHO_PIN, CHASIS_POS_MAX};
+static NewPing *newPing = new NewPing{TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE};
 
 static Sensor *sensors[] = {
     new RfidDetector{&partDetector},

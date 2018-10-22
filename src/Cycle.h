@@ -35,6 +35,8 @@ class Cycle
         {
             conditions[index] = new Condition{conditionAsString[index], 2};
         }
+
+        Serial << nofSteps << '\n';
     }
     //c3[0b0&0c38:1(100),0b0&0d38:1(100),0b0&0a38:1(100)]
     ActionCommand *getActionCommand(int valueToCompare, int sensorIndex)
@@ -43,18 +45,19 @@ class Cycle
         {
             if (conditions[index]->conditionFullified(valueToCompare, sensorIndex))
             {
-                return new ActionCommand{actionIndexes[index], params[index]};
+                Serial << "nice.";
+                //  return new ActionCommand{actionIndexes[index], params[index]};
             }
         }
         return dummyActionCommand;
     }
 
   private:
-    uint8_t nofSteps;
+    uint8_t nofSteps{};
     uint8_t nofActionCommands;
     uint8_t actualStep{0};
     uint8_t *actionIndexes;
     uint8_t *params;
-    Condition *conditions[];
-    ActionCommand *dummyActionCommand{};
+    Condition *conditions[8];
+    ActionCommand *dummyActionCommand{new ActionCommand{}};
 };

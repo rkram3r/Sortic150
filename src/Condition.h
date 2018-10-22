@@ -12,17 +12,13 @@ bool greaterThanEqual(int a, int b) { return equal(a, b) || greater(a, b); }
 
 compare functions[] = {equal, lower, greater, notEqual, lowerThanEqual, greaterThanEqual};
 
-struct Condition
+class Condition
 {
-    uint8_t nofConditions;
-    uint8_t *sensorIndexes;
-    uint8_t *comperators;
-    int *values;
-
+  public:
     Condition(String income, uint8_t nofConditions) : nofConditions{nofConditions},
-                                                      sensorIndexes{new uint8_t[nofConditions]{}},
-                                                      comperators{new uint8_t[nofConditions]{}},
-                                                      values{new int[nofConditions]{}}
+                                                      sensorIndexes{},
+                                                      comperators{},
+                                                      values{}
     {
         char buff[32];
         income.toCharArray(buff, 64);
@@ -52,4 +48,10 @@ struct Condition
         }
         return false;
     }
+
+  private:
+    uint8_t nofConditions;
+    uint8_t sensorIndexes[4];
+    uint8_t comperators[4];
+    int values[4];
 };

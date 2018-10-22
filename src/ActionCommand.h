@@ -2,10 +2,10 @@
 #include <Arduino.h>
 #include "Action.h"
 
-struct ActionCommand
+class ActionCommand
 {
-    int actionIndex;
-    uint8_t params;
+
+  public:
     ActionCommand() : actionIndex{-1} {}
 
     ActionCommand(Stream &stream) : actionIndex{(int)stream.parseInt()},
@@ -26,4 +26,8 @@ struct ActionCommand
         }
         return false;
     }
+
+  private:
+    int actionIndex;
+    uint8_t params;
 };

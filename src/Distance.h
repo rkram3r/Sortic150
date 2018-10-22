@@ -11,11 +11,7 @@ public:
   Print &get(Print &out)
   {
     auto value = sensor->ping_cm();
-    if (value == 0)
-    {
-      return out;
-    }
-    return out << value;
+    return value == 0 ? out : out << value;
   }
 
 private:

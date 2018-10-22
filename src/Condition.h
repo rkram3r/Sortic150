@@ -14,44 +14,22 @@ compare functions[] = {equal, lower, greater, notEqual, lowerThanEqual, greaterT
 
 class Condition
 {
-  public:
-    Condition(String income, uint8_t nofConditions) : nofConditions{nofConditions},
-                                                      sensorIndexes{},
-                                                      comperators{},
-                                                      values{}
-    {
-        char buff[32];
-        income.toCharArray(buff, 64);
+public:
+  Condition(Stream &stream) : sensorIndex{stream.parseInt()},
+                              comperatorIndex{stream.peek() - 'a'},
+                              value{stream.parseInt()}
+  {
+    Serial << sensorIndex << " " << comperatorIndex << " " << value << '\n';
+  }
 
-        char delimiter[] = "&";
-        char *ptr;
-        for (int index = 0; index < nofConditions; index++)
-        {
-            ptr = strtok(index == 0 ? buff : NULL, delimiter);
-            sensorIndexes[index] = ptr[0] - '0';
-            comperators[index] = ptr[1] - 'a';
-            String tmp = ptr;
-            tmp = tmp.substring(2, tmp.length());
-            values[index] = tmp.toInt();
-        }
-    }
+  bool conditionFullified(int valueToCompare, int currentSensorIndex)
+  {
+    return currentSensorIndex == sensorIndex &&
+           functions[comperatorIndex](valueToCompare, value);
+  }
 
-    bool conditionFullified(int valueToCompare, int currentSensorIndex)
-    {
-        for (int index = 0; index < nofConditions; index++)
-        {
-            if (currentSensorIndex == sensorIndexes[index] &&
-                functions[comperators[index]](valueToCompare, values[index]))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-  private:
-    uint8_t nofConditions;
-    uint8_t sensorIndexes[4];
-    uint8_t comperators[4];
-    int values[4];
+private:
+  uint8_t sensorIndex;
+  uint8_t comperatorIndex;
+  int value;
 };

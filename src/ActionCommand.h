@@ -6,7 +6,7 @@ class ActionCommand
 {
 
   public:
-    ActionCommand() : actionIndex{-1} {}
+    ActionCommand() : actionIndex{-1}, params{} {}
 
     ActionCommand(Stream &stream) : actionIndex{(int)stream.parseInt()},
                                     params{(uint8_t)stream.parseInt()}

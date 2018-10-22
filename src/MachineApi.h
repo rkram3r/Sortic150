@@ -1,9 +1,9 @@
 #pragma once
 #include "CommandType.h"
-#include "Cycle.h"
 #include "ActionCommand.h"
 #include "Sensor.h"
 #include "Action.h"
+#include "Step.h"
 #include <Arduino.h>
 #include <LoopbackStream.h>
 
@@ -18,9 +18,13 @@ class MachineApi
           sensors{sensors},
           nofSensors{nofSensors},
           actions{actions},
-          nofActions{nofActions}
+          nofActions{nofActions},
+          steps{},
+          nofSteps{}
     {
     }
+
+    // s[2(1b0&1c38)1(100)]
     //c3[0b0&0c38:1(100),0b0&0d38:1(100),0b0&0a38:1(100)]
     void in(Stream &stream)
     {
@@ -28,22 +32,23 @@ class MachineApi
         {
             return;
         }
-        String income = stream.readStringUntil('\n');
-        commandType = (CommandType)income.charAt(0);
+        commandType = (CommandType)stream.peek();
+        buffer << stream.readStringUntil(']');
         if (commandType == CommandTypeAction)
         {
             ActionCommand *actionCommand = new ActionCommand{buffer};
             actionCommand->tryRunAction(actions);
         }
-        if (commandType == CommandTypeCycle)
+        if (commandType == CommandTypeStep)
         {
-            cycle = new Cycle{income, nofActions};
+            steps[nofSteps] = new Step{buffer};
+            nofSteps++;
         }
     }
 
     void out(Stream &out)
     {
-        if (commandType == CommandTypeCycle)
+        if (commandType == CommandTypeStep)
         {
             out << '[';
             for (auto index = 0; index < NofSensors; index++)
@@ -51,22 +56,22 @@ class MachineApi
                 sensors[index]->get(buffer);
                 if (buffer.peek() != -1)
                 {
-                    int value{buffer.parseInt()};
+                    auto value = buffer.parseInt();
                     out << value;
-                    ActionCommand *actionCommand = cycle->getActionCommand(value, index);
+                    auto actionCommand = steps[actualStep]->getActionCommand(value, index);
                     actionCommand->tryRunAction(actions);
                 }
                 out << (index == NofSensors - 1 ? ']' : ',');
             }
         }
-        /* else //c3[0b0&0c38:1(100),0b0&0d38:1(100),0b0&0a38:1(100)]
+        else
         {
             out << '[';
             for (auto index = 0; index < NofSensors; index++)
             {
                 sensors[index]->get(out) << (index == NofSensors - 1 ? ']' : ',');
             }
-        }*/
+        }
     }
 
   private:
@@ -75,5 +80,7 @@ class MachineApi
     uint8_t nofSensors;
     Action **actions;
     uint8_t nofActions;
-    Cycle *cycle{};
+    Step *steps[16];
+    uint8_t nofSteps{0};
+    uint8_t actualStep{0};
 };

@@ -3,5 +3,5 @@
 class Action
 {
 public:
-  virtual void start(int param) = 0;
+  virtual void start(int params) = 0;
 };

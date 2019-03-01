@@ -1,12 +1,16 @@
-#ifndef Sensor_h
-#define Sensor_h
+#pragma once
 
-#include <Arduino.h>
+#include <Stream.h>
+
+template <class T>
+inline Stream &operator<<(Stream &obj, T arg)
+{
+  obj.print(arg);
+  return obj;
+}
 
 class Sensor
 {
 public:
-
-  virtual Print & get(Print &obj) = 0;
+  virtual Stream &get(Stream &obj) = 0;
 };
-#endif

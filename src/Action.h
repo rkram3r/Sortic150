@@ -1,10 +1,7 @@
-#ifndef Action_h
-#define Action_h
+#pragma once
 
 class Action
 {
 public:
   virtual void start(int param) = 0;
 };
-
-#endif
